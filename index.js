@@ -61,8 +61,8 @@ app.get("/office/hold", (req, res) => {
 /**
  * ROUTER: enqueue caller + call agent immediately (Zoiper)
  */
-app.post("/office/router", async (req, res) => {
-  const digits = (req.body?.Digits || "").trim();
+app.all("/office/router", async (req, res) => {
+  const digits = String(req.body?.Digits ?? req.query?.Digits ?? "").trim();
 
   if (digits === "9" || digits === "") {
     return sendTeXML(

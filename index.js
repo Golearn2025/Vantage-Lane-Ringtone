@@ -76,7 +76,7 @@ app.all("/office/router", async (req, res) => {
 
   // call agent immediately (fire-and-forget)
   try {
-    await fetch("https://api.telnyx.com/v2/calls", {
+    const r = await fetch("https://api.telnyx.com/v2/calls", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${TELNYX_API_KEY}`,
@@ -88,8 +88,11 @@ app.all("/office/router", async (req, res) => {
         to: TELNYX_AGENT_SIP_URI,
       }),
     });
+
+    const txt = await r.text();
+    console.log("TELNYX /v2/calls status:", r.status, "body:", txt);
   } catch (e) {
-    // ignore
+    console.log("TELNYX /v2/calls error:", e?.message || e);
   }
 
   sendTeXML(

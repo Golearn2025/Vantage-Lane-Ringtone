@@ -46,7 +46,7 @@ app.get("/office/menu", (req, res) => {
 /**
  * HOLD MUSIC LOOP
  */
-app.get("/office/hold", (req, res) => {
+app.all("/office/hold", (req, res) => {
   sendTeXML(
     res,
     `<?xml version="1.0" encoding="UTF-8"?>

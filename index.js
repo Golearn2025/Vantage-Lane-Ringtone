@@ -28,43 +28,41 @@ function esc(s = "") {
     .replaceAll("'", "&apos;");
 }
 
-/**
- * Pornim apelul către agent (Zoiper) via TeXML REST:
- * POST /texml/Accounts/{account_sid}/Calls
- * https://developers.telnyx.com/api-reference/texml-rest-commands/initiate-an-outbound-call
- */
-async function ringAgent({ menuChoice }) {
-  if (!TELNYX_API_KEY || !TELNYX_ACCOUNT_SID || !TELNYX_AGENT_APP_SID || !TELNYX_AGENT_SIP_URI || !TELNYX_FROM_NUMBER) {
-    console.log("Missing env vars. Check Render Environment.");
-    return;
-  }
+async function ringAgent() {
+  const url = "https://api.telnyx.com/v2/calls";
 
-  const url = `https://api.telnyx.com/texml/Accounts/${TELNYX_ACCOUNT_SID}/Calls`;
-
-  const payload = {
-    ApplicationSid: TELNYX_AGENT_APP_SID,
-    From: TELNYX_FROM_NUMBER,
-    To: TELNYX_AGENT_SIP_URI,
-    CallerId: "Vantage Lane",
-    // opțional: dacă vrei să override-uiești XML URL doar pentru apelul agentului:
-    // Url: "https://vantage-lane-ringtone.onrender.com/agent/bridge",
-    // UrlMethod: "GET",
+  const headers = {
+    Authorization: `Bearer ${process.env.TELNYX_API_KEY}`,
+    "Content-Type": "application/json",
   };
 
-  try {
-    const r = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${TELNYX_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+  const calls = [
+    {
+      to: process.env.TELNYX_AGENT_SIP_URI,
+      from: process.env.TELNYX_FROM_NUMBER,
+      connection_id: process.env.TELNYX_SIP_CONNECTION_ID_CATALIN,
+      voice_application_id: process.env.TELNYX_VOICE_APP_ID,
+    },
+    {
+      to: process.env.TELNYX_AGENT_SIP_URI,
+      from: process.env.TELNYX_FROM_NUMBER,
+      connection_id: process.env.TELNYX_SIP_CONNECTION_ID_CRISTI,
+      voice_application_id: process.env.TELNYX_VOICE_APP_ID,
+    },
+  ];
 
-    const text = await r.text();
-    console.log("TELNYX TeXML create call:", r.status, text, "choice=", menuChoice);
-  } catch (e) {
-    console.log("TELNYX create call error:", e?.message || e);
+  for (const payload of calls) {
+    try {
+      const r = await fetch(url, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+      });
+      const t = await r.text();
+      console.log("Voice API call:", r.status, t);
+    } catch (e) {
+      console.log("Voice API error:", e);
+    }
   }
 }
 
@@ -125,7 +123,7 @@ app.all("/office/router", async (req, res) => {
   }
 
   // Important: ring agent NOW (nu după ce se termină melodia)
-  ringAgent({ menuChoice: digits });
+  ringAgent();
 
   // Clientul intră în coadă și aude muzică până răspunzi tu în Zoiper
   xml(

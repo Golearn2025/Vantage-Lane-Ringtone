@@ -57,16 +57,17 @@ app.post("/office/router", (req, res) => {
 </Response>`);
   }
 
-  // Transfer to 3CX via Telnyx SIP Connection
-  // Format: username*extension@sip.telnyx.com routes through authenticated trunk
-  const sipUri = `sip:vantagelane2026*${extension}@sip.telnyx.com`;
-
+  // Dial 3CX Ring Group - always use Ring Group for all options
+  // This plays hold music to caller while ringing 3CX phones
+  const holdMusicUrl = "https://fmeonuvmlopkutbjejlo.supabase.co/storage/v1/object/public/Ringtone/minimalistic-for-design-201447.mp3";
+  
   xml(res, `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Polly.Amy-Neural">Please hold while I connect you.</Say>
-  <Refer>
-    <Sip>${sipUri}</Sip>
-  </Refer>
+  <Dial callerId="${TELNYX_FROM}" timeout="45" ringTone="${holdMusicUrl}">
+    <Sip>sip:vantagelane2026@sip.telnyx.com</Sip>
+  </Dial>
+  <Say voice="Polly.Amy-Neural">Sorry, no one is available. Goodbye.</Say>
 </Response>`);
 });
 

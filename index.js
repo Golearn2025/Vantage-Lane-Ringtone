@@ -44,11 +44,11 @@ app.post("/office/router", (req, res) => {
   let sipUri = "";
   
   if (digits === "1") {
-    sipUri = "sip:30010@1588.3cx.cloud"; // Constantin
+    sipUri = "sip:30010@sip.telnyx.com"; // Constantin via Telnyx
   } else if (digits === "2") {
-    sipUri = "sip:30011@1588.3cx.cloud"; // Cristi
+    sipUri = "sip:30011@sip.telnyx.com"; // Cristi via Telnyx
   } else if (digits === "0") {
-    sipUri = "sip:30060@1588.3cx.cloud"; // Ring Group (both)
+    sipUri = "sip:30060@sip.telnyx.com"; // Ring Group (both) via Telnyx
   } else {
     return xml(res, `<?xml version="1.0" encoding="UTF-8"?>
 <Response>

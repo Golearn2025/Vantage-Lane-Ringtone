@@ -19,9 +19,9 @@ app.post("/office/menu", (req, res) => {
   <Gather action="https://vantage-lane-ringtone.onrender.com/office/router" numDigits="1" timeout="6">
     <Say voice="Polly.Amy-Neural">
       Thank you for calling Vantage Lane London, premium chauffeur and concierge.
-      Press 1 for the main office.
-      Press 2 for bookings and reservations.
-      Press 3 for drivers and operations.
+      Press 1 to speak with Constantin.
+      Press 2 to speak with Cristi.
+      Press 0 for both agents.
     </Say>
   </Gather>
   <Redirect>https://vantage-lane-ringtone.onrender.com/office/menu</Redirect>
@@ -39,7 +39,15 @@ app.post("/office/router", (req, res) => {
 </Response>`);
   }
 
-  if (!["1", "2", "3"].includes(digits)) {
+  let sipUri = "";
+  
+  if (digits === "1") {
+    sipUri = "sip:30010@1588.3cx.cloud"; // Constantin
+  } else if (digits === "2") {
+    sipUri = "sip:30011@1588.3cx.cloud"; // Cristi
+  } else if (digits === "0") {
+    sipUri = "sip:30060@1588.3cx.cloud"; // Ring Group (both)
+  } else {
     return xml(res, `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Polly.Amy-Neural">Invalid selection. Please try again.</Say>
@@ -47,12 +55,11 @@ app.post("/office/router", (req, res) => {
 </Response>`);
   }
 
-  // Sună Zoiper
   xml(res, `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Polly.Amy-Neural">Please hold while I connect you.</Say>
   <Dial callerId="${TELNYX_FROM}" timeout="45">
-    <Sip>${ZOIPER_SIP}</Sip>
+    <Sip>${sipUri}</Sip>
   </Dial>
   <Say voice="Polly.Amy-Neural">Sorry, no one is available. Goodbye.</Say>
 </Response>`);

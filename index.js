@@ -30,7 +30,9 @@ app.post("/office/menu", (req, res) => {
 
 // ROUTER
 app.post("/office/router", (req, res) => {
-  const digits = req.body.Digits || "";
+  const digits = req.body.Digits || req.query.Digits || "";
+  
+  console.log("Received digits:", digits, "Body:", req.body, "Query:", req.query);
   
   if (digits === "9" || digits === "") {
     return xml(res, `<?xml version="1.0" encoding="UTF-8"?>

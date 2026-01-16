@@ -8,10 +8,11 @@ app.use(express.json());
 
 const {
   TELNYX_API_KEY,
-  TELNYX_ACCOUNT_SID,
-  TELNYX_AGENT_APP_SID,
   TELNYX_AGENT_SIP_URI,
   TELNYX_FROM_NUMBER,
+  TELNYX_SIP_CONNECTION_ID_CATALIN,
+  TELNYX_SIP_CONNECTION_ID_CRISTI,
+  TELNYX_VOICE_APP_ID,
 } = process.env;
 
 function xml(res, body) {
@@ -29,6 +30,7 @@ function esc(s = "") {
 }
 
 async function ringAgent() {
+  console.log("RING AGENT CALLED");
   const url = "https://api.telnyx.com/v2/calls";
 
   const headers = {
@@ -52,6 +54,7 @@ async function ringAgent() {
   ];
 
   for (const payload of calls) {
+    console.log("Calling Telnyx with payload", payload);
     try {
       const r = await fetch(url, {
         method: "POST",
@@ -122,6 +125,7 @@ app.all("/office/router", async (req, res) => {
     );
   }
 
+  console.log("ROUTER HIT");
   // Important: ring agent NOW (nu după ce se termină melodia)
   ringAgent();
 

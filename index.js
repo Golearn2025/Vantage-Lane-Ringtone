@@ -57,16 +57,15 @@ app.post("/office/router", (req, res) => {
 </Response>`);
   }
 
-  // Transfer to 3CX via authenticated Telnyx SIP connection
-  const sipUri = `sip:${extension}@sip.telnyx.com`;
+  // Transfer to 3CX using Refer verb - transfers call to 3CX SIP trunk
+  const sipUri = `sip:${extension}@1588.3cx.cloud`;
 
   xml(res, `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Polly.Amy-Neural">Please hold while I connect you.</Say>
-  <Dial callerId="${TELNYX_FROM}" timeout="45" sipAuthUsername="vantagelane2026" sipAuthPassword="Karina1986">
+  <Refer>
     <Sip>${sipUri}</Sip>
-  </Dial>
-  <Say voice="Polly.Amy-Neural">Sorry, no one is available. Goodbye.</Say>
+  </Refer>
 </Response>`);
 });
 

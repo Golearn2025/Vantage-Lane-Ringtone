@@ -41,14 +41,14 @@ app.post("/office/router", (req, res) => {
 </Response>`);
   }
 
-  let sipUri = "";
+  let extension = "";
   
   if (digits === "1") {
-    sipUri = "sip:vantagelane2026*30010@sip.telnyx.com"; // Constantin via SIP trunk
+    extension = "30010"; // Constantin
   } else if (digits === "2") {
-    sipUri = "sip:vantagelane2026*30011@sip.telnyx.com"; // Cristi via SIP trunk
+    extension = "30011"; // Cristi
   } else if (digits === "0") {
-    sipUri = "sip:vantagelane2026*30060@sip.telnyx.com"; // Ring Group via SIP trunk
+    extension = "30060"; // Ring Group
   } else {
     return xml(res, `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -57,10 +57,13 @@ app.post("/office/router", (req, res) => {
 </Response>`);
   }
 
+  // Transfer to 3CX via authenticated Telnyx SIP connection
+  const sipUri = `sip:${extension}@sip.telnyx.com`;
+
   xml(res, `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Polly.Amy-Neural">Please hold while I connect you.</Say>
-  <Dial callerId="${TELNYX_FROM}" timeout="45">
+  <Dial callerId="${TELNYX_FROM}" timeout="45" sipAuthUsername="vantagelane2026" sipAuthPassword="Karina1986">
     <Sip>${sipUri}</Sip>
   </Dial>
   <Say voice="Polly.Amy-Neural">Sorry, no one is available. Goodbye.</Say>

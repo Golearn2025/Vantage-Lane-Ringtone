@@ -57,8 +57,9 @@ app.post("/office/router", (req, res) => {
 </Response>`);
   }
 
-  // Transfer to 3CX using Refer verb - transfers call to 3CX SIP trunk
-  const sipUri = `sip:${extension}@1588.3cx.cloud`;
+  // Transfer to 3CX via Telnyx SIP Connection
+  // Format: username*extension@sip.telnyx.com routes through authenticated trunk
+  const sipUri = `sip:vantagelane2026*${extension}@sip.telnyx.com`;
 
   xml(res, `<?xml version="1.0" encoding="UTF-8"?>
 <Response>

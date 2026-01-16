@@ -42,11 +42,13 @@ async function ringAgent() {
     {
       to: process.env.TELNYX_AGENT_SIP_URI,
       from: process.env.TELNYX_FROM_NUMBER,
+      connection_id: process.env.TELNYX_SIP_CONNECTION_ID_CATALIN,
       call_control_app_id: process.env.TELNYX_VOICE_APP_ID,
     },
     {
       to: process.env.TELNYX_AGENT_SIP_URI,
       from: process.env.TELNYX_FROM_NUMBER,
+      connection_id: process.env.TELNYX_SIP_CONNECTION_ID_CRISTI,
       call_control_app_id: process.env.TELNYX_VOICE_APP_ID,
     },
   ];

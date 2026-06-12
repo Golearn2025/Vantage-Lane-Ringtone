@@ -60,7 +60,7 @@ app.post("/office/router", (req, res) => {
   // Dial 3CX Ring Group via Telnyx SIP Connection
   // ringTone plays hold music to caller while phones ring
   const holdMusicUrl = "https://fmeonuvmlopkutbjejlo.supabase.co/storage/v1/object/public/Ringtone/minimalistic-for-design-201447.mp3";
-  const sipUri = `sip:${extension}@1588.3cx.cloud`; // Ring Group
+  const sipUri = `sip:30010@1588.3cx.cloud`; // Ring Group
   
   xml(res, `<?xml version="1.0" encoding="UTF-8"?>
 <Response>

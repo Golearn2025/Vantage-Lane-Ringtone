@@ -33,6 +33,7 @@ const MENU_SAY = `Thank you for calling Vantage Lane London, premium chauffeur a
       Press 2 for a new reservation.
       Press 3 for business enquiries.
       Press 4 for driver support.
+      Press 0 to connect with our team.
       You may also email us at contact at vantage hyphen lane dot com.
       Press 9 to hear this menu again.`;
 
@@ -71,17 +72,24 @@ function renderMenu(res) {
   );
 }
 
-function renderSequentialDial(res, chain) {
+function resolveCallerId(req) {
+  const raw = (req.body?.From ?? req.query?.From ?? "").toString().trim();
+  const normalized = raw.startsWith("+") ? raw : raw ? `+${raw.replace(/\D/g, "")}` : "";
+  if (/^\+[1-9]\d{6,14}$/.test(normalized)) return normalized;
+  return TELNYX_FROM;
+}
+
+function renderSequentialDial(res, chain, callerId) {
   const numberTags = chain.map((n) => `    <Number>${esc(n)}</Number>`).join("\n");
 
-  console.log("Sequential dial:", chain.join(" → "));
+  console.log("Sequential dial:", chain.join(" → "), "callerId:", callerId);
 
   xml(
     res,
     `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Polly.Amy-Neural">Please hold while I connect you.</Say>
-  <Dial sequential="true" callerId="${esc(TELNYX_FROM)}" timeout="${DIAL_LEG_TIMEOUT}" audioUrl="${esc(HOLD_MUSIC_URL)}" connectionId="${esc(TELNYX_CONNECTION_ID)}">
+  <Dial sequential="true" callerId="${esc(callerId)}" timeout="${DIAL_LEG_TIMEOUT}" audioUrl="${esc(HOLD_MUSIC_URL)}" connectionId="${esc(TELNYX_CONNECTION_ID)}">
 ${numberTags}
   </Dial>
   <Say voice="Polly.Amy-Neural">${esc(UNAVAILABLE_SAY)}</Say>
@@ -120,7 +128,7 @@ app.all("/office/router", (req, res) => {
     return;
   }
 
-  renderSequentialDial(res, chain);
+  renderSequentialDial(res, chain, resolveCallerId(req));
 });
 
 app.all("/office/hold", (_req, res) => {

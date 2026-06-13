@@ -30,7 +30,7 @@ const ROUTES = {
 
 const MENU_SAY = `Thank you for calling Vantage Lane London, premium chauffeur and concierge.
       Press 1 for an existing booking.
-      Press 2 to make a new booking.
+      Press 2 for a new reservation.
       Press 3 for business enquiries.
       Press 4 for driver support.
       You may also email us at contact at vantage hyphen lane dot com.

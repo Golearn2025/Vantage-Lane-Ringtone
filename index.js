@@ -19,7 +19,7 @@ const DIAL_LEG_TIMEOUT = Number(process.env.DIAL_LEG_TIMEOUT || 20);
 const NUM_CATALIN = process.env.TELNYX_NUM_CATALIN || "+442046203133";
 const NUM_CRISTI = process.env.TELNYX_NUM_CRISTI || "+442046203134";
 
-// Sequential hunt — one person at a time, then failover via /office/failover.
+// sequential="true" on <Dial> — Telnyx tries each number in order when the prior leg is not answered.
 const ROUTES = {
   "1": [NUM_CATALIN, NUM_CRISTI],
   "2": [NUM_CRISTI, NUM_CATALIN],
@@ -27,8 +27,6 @@ const ROUTES = {
   "4": [NUM_CATALIN, NUM_CRISTI],
   "0": [NUM_CATALIN, NUM_CRISTI],
 };
-
-const FAILOVER_STATUSES = new Set(["no-answer", "busy", "failed", "canceled"]);
 
 const MENU_SAY = `Thank you for calling Vantage Lane London, premium chauffeur and concierge.
       Press 1 for bookings.
@@ -57,37 +55,19 @@ function esc(s = "") {
     .replaceAll("'", "&apos;");
 }
 
-function failoverUrl(chain, step) {
-  const params = new URLSearchParams({ chain: chain.join(","), step: String(step) });
-  return `${BASE_URL}/office/failover?${params}`;
-}
+function renderSequentialDial(res, chain) {
+  const numberTags = chain.map((n) => `    <Number>${esc(n)}</Number>`).join("\n");
 
-function renderDial(res, chain, step, { intro = false } = {}) {
-  const number = chain[step];
-  const action = failoverUrl(chain, step);
-  const introSay = intro
-    ? `  <Say voice="Polly.Amy-Neural">Please hold while I connect you.</Say>\n`
-    : "";
-
-  console.log("Dial leg", step + 1, "of", chain.length, "→", number);
+  console.log("Sequential dial:", chain.join(" → "));
 
   xml(
     res,
     `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-${introSay}  <Dial callerId="${esc(TELNYX_FROM)}" timeout="${DIAL_LEG_TIMEOUT}" ringTone="${esc(HOLD_MUSIC_URL)}" connectionId="${esc(TELNYX_CONNECTION_ID)}" action="${esc(action)}" method="POST">
-    <Number>${esc(number)}</Number>
+  <Say voice="Polly.Amy-Neural">Please hold while I connect you.</Say>
+  <Dial sequential="true" callerId="${esc(TELNYX_FROM)}" timeout="${DIAL_LEG_TIMEOUT}" ringTone="${esc(HOLD_MUSIC_URL)}" connectionId="${esc(TELNYX_CONNECTION_ID)}">
+${numberTags}
   </Dial>
-  <Say voice="Polly.Amy-Neural">${esc(UNAVAILABLE_SAY)}</Say>
-</Response>`
-  );
-}
-
-function renderUnavailable(res) {
-  xml(
-    res,
-    `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
   <Say voice="Polly.Amy-Neural">${esc(UNAVAILABLE_SAY)}</Say>
 </Response>`
   );
@@ -141,30 +121,7 @@ app.all("/office/router", (req, res) => {
     );
   }
 
-  renderDial(res, chain, 0, { intro: true });
-});
-
-app.all("/office/failover", (req, res) => {
-  const status = (req.body?.DialCallStatus ?? req.query?.DialCallStatus ?? "")
-    .toString()
-    .toLowerCase();
-  const chain = (req.query.chain ?? "").split(",").filter(Boolean);
-  const step = Number(req.query.step ?? 0);
-
-  console.log("Failover status:", status, "chain:", chain.join(" → "), "step:", step);
-
-  if (status === "completed") {
-    return xml(res, `<?xml version="1.0" encoding="UTF-8"?>\n<Response></Response>`);
-  }
-
-  if (FAILOVER_STATUSES.has(status)) {
-    const next = step + 1;
-    if (next < chain.length) {
-      return renderDial(res, chain, next);
-    }
-  }
-
-  return renderUnavailable(res);
+  renderSequentialDial(res, chain);
 });
 
 app.all("/office/hold", (_req, res) => {

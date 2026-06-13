@@ -11,9 +11,14 @@ const BASE_URL = process.env.BASE_URL || "https://vantage-lane-ringtone.onrender
 const TELNYX_FROM = process.env.TELNYX_FROM_NUMBER || "+442046203131";
 const TELNYX_CONNECTION_ID =
   process.env.TELNYX_SIP_CONNECTION_ID || "2872033420802786570";
-const HOLD_MUSIC_URL =
+const HOLD_MUSIC_BASE =
   process.env.HOLD_MUSIC_URL ||
   "https://ruskhucrvjvuuzwlboqn.supabase.co/storage/v1/object/public/ringtone/hold-music.mp3";
+// Bump version when replacing the Supabase file so Telnyx fetches fresh audio (avoids cache).
+const HOLD_MUSIC_VERSION = process.env.HOLD_MUSIC_VERSION || "20260613";
+const HOLD_MUSIC_URL = HOLD_MUSIC_BASE.includes("?")
+  ? `${HOLD_MUSIC_BASE}&v=${HOLD_MUSIC_VERSION}`
+  : `${HOLD_MUSIC_BASE}?v=${HOLD_MUSIC_VERSION}`;
 const DIAL_LEG_TIMEOUT = Number(process.env.DIAL_LEG_TIMEOUT || 20);
 
 const NUM_CATALIN = process.env.TELNYX_NUM_CATALIN || "+442046203133";

@@ -65,7 +65,7 @@ function renderSequentialDial(res, chain) {
     `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Polly.Amy-Neural">Please hold while I connect you.</Say>
-  <Dial sequential="true" callerId="${esc(TELNYX_FROM)}" timeout="${DIAL_LEG_TIMEOUT}" ringTone="${esc(HOLD_MUSIC_URL)}" connectionId="${esc(TELNYX_CONNECTION_ID)}">
+  <Dial sequential="true" callerId="${esc(TELNYX_FROM)}" timeout="${DIAL_LEG_TIMEOUT}" audioUrl="${esc(HOLD_MUSIC_URL)}" connectionId="${esc(TELNYX_CONNECTION_ID)}">
 ${numberTags}
   </Dial>
   <Say voice="Polly.Amy-Neural">${esc(UNAVAILABLE_SAY)}</Say>

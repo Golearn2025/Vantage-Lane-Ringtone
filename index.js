@@ -14,18 +14,21 @@ const TELNYX_CONNECTION_ID =
 const HOLD_MUSIC_URL =
   process.env.HOLD_MUSIC_URL ||
   "https://ruskhucrvjvuuzwlboqn.supabase.co/storage/v1/object/public/ringtone/hold-music.mp3";
+const DIAL_LEG_TIMEOUT = Number(process.env.DIAL_LEG_TIMEOUT || 20);
 
 const NUM_CATALIN = process.env.TELNYX_NUM_CATALIN || "+442046203133";
 const NUM_CRISTI = process.env.TELNYX_NUM_CRISTI || "+442046203134";
 
-// Dial registered Telnyx SIP lines (3CX apps), not sip:ext@3cx — TeXML SIP dial fails with MANDATORY_IE_MISSING.
+// Sequential hunt — one person at a time, then failover via /office/failover.
 const ROUTES = {
-  "1": [NUM_CATALIN],
-  "2": [NUM_CRISTI],
-  "3": [NUM_CATALIN, NUM_CRISTI],
+  "1": [NUM_CATALIN, NUM_CRISTI],
+  "2": [NUM_CRISTI, NUM_CATALIN],
+  "3": [NUM_CRISTI, NUM_CATALIN],
   "4": [NUM_CATALIN, NUM_CRISTI],
   "0": [NUM_CATALIN, NUM_CRISTI],
 };
+
+const FAILOVER_STATUSES = new Set(["no-answer", "busy", "failed", "canceled"]);
 
 const MENU_SAY = `Thank you for calling Vantage Lane London, premium chauffeur and concierge.
       Press 1 for bookings.
@@ -52,6 +55,42 @@ function esc(s = "") {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&apos;");
+}
+
+function failoverUrl(chain, step) {
+  const params = new URLSearchParams({ chain: chain.join(","), step: String(step) });
+  return `${BASE_URL}/office/failover?${params}`;
+}
+
+function renderDial(res, chain, step, { intro = false } = {}) {
+  const number = chain[step];
+  const action = failoverUrl(chain, step);
+  const introSay = intro
+    ? `  <Say voice="Polly.Amy-Neural">Please hold while I connect you.</Say>\n`
+    : "";
+
+  console.log("Dial leg", step + 1, "of", chain.length, "→", number);
+
+  xml(
+    res,
+    `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+${introSay}  <Dial callerId="${esc(TELNYX_FROM)}" timeout="${DIAL_LEG_TIMEOUT}" ringTone="${esc(HOLD_MUSIC_URL)}" connectionId="${esc(TELNYX_CONNECTION_ID)}" action="${esc(action)}" method="POST">
+    <Number>${esc(number)}</Number>
+  </Dial>
+  <Say voice="Polly.Amy-Neural">${esc(UNAVAILABLE_SAY)}</Say>
+</Response>`
+  );
+}
+
+function renderUnavailable(res) {
+  xml(
+    res,
+    `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="Polly.Amy-Neural">${esc(UNAVAILABLE_SAY)}</Say>
+</Response>`
+  );
 }
 
 app.get("/", (_req, res) => {
@@ -90,8 +129,8 @@ app.all("/office/router", (req, res) => {
     );
   }
 
-  const numbers = ROUTES[digits];
-  if (!numbers) {
+  const chain = ROUTES[digits];
+  if (!chain) {
     return xml(
       res,
       `<?xml version="1.0" encoding="UTF-8"?>
@@ -102,21 +141,30 @@ app.all("/office/router", (req, res) => {
     );
   }
 
-  const numberTags = numbers.map((n) => `<Number>${esc(n)}</Number>`).join("\n    ");
+  renderDial(res, chain, 0, { intro: true });
+});
 
-  console.log("Dial numbers:", numbers.join(", "));
+app.all("/office/failover", (req, res) => {
+  const status = (req.body?.DialCallStatus ?? req.query?.DialCallStatus ?? "")
+    .toString()
+    .toLowerCase();
+  const chain = (req.query.chain ?? "").split(",").filter(Boolean);
+  const step = Number(req.query.step ?? 0);
 
-  xml(
-    res,
-    `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say voice="Polly.Amy-Neural">Please hold while I connect you.</Say>
-  <Dial callerId="${esc(TELNYX_FROM)}" timeout="45" ringTone="${esc(HOLD_MUSIC_URL)}" connectionId="${esc(TELNYX_CONNECTION_ID)}">
-    ${numberTags}
-  </Dial>
-  <Say voice="Polly.Amy-Neural">${esc(UNAVAILABLE_SAY)}</Say>
-</Response>`
-  );
+  console.log("Failover status:", status, "chain:", chain.join(" → "), "step:", step);
+
+  if (status === "completed") {
+    return xml(res, `<?xml version="1.0" encoding="UTF-8"?>\n<Response></Response>`);
+  }
+
+  if (FAILOVER_STATUSES.has(status)) {
+    const next = step + 1;
+    if (next < chain.length) {
+      return renderDial(res, chain, next);
+    }
+  }
+
+  return renderUnavailable(res);
 });
 
 app.all("/office/hold", (_req, res) => {
@@ -137,4 +185,5 @@ const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log("Vantage Lane IVR on port", port);
   console.log("Hold music:", HOLD_MUSIC_URL);
+  console.log("Dial leg timeout:", DIAL_LEG_TIMEOUT, "s");
 });

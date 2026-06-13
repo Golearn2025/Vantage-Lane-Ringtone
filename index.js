@@ -29,12 +29,12 @@ const ROUTES = {
 };
 
 const MENU_SAY = `Thank you for calling Vantage Lane London, premium chauffeur and concierge.
-      Press 1 for bookings.
-      Press 2 for new reservations.
+      Press 1 for an existing booking.
+      Press 2 to make a new booking.
       Press 3 for business enquiries.
       Press 4 for driver support.
       You may also email us at contact at vantage hyphen lane dot com.
-      Press 9 to repeat this menu.`;
+      Press 9 to hear this menu again.`;
 
 const UNAVAILABLE_SAY = `We are sorry, no one is available to take your call right now.
       Please email contact at vantage hyphen lane dot com with your enquiry, and we will respond as soon as possible.
@@ -53,6 +53,22 @@ function esc(s = "") {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&apos;");
+}
+
+function renderMenu(res) {
+  const routerUrl = `${BASE_URL}/office/router`;
+  const menuUrl = `${BASE_URL}/office/menu`;
+
+  xml(
+    res,
+    `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather action="${esc(routerUrl)}" method="POST" numDigits="1" timeout="8" validDigits="123490">
+    <Say voice="Polly.Amy-Neural">${esc(MENU_SAY)}</Say>
+  </Gather>
+  <Redirect method="POST">${esc(menuUrl)}</Redirect>
+</Response>`
+  );
 }
 
 function renderSequentialDial(res, chain) {
@@ -78,19 +94,7 @@ app.get("/", (_req, res) => {
 });
 
 app.all("/office/menu", (_req, res) => {
-  const routerUrl = `${BASE_URL}/office/router`;
-  const menuUrl = `${BASE_URL}/office/menu`;
-
-  xml(
-    res,
-    `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Gather action="${esc(routerUrl)}" method="POST" numDigits="1" timeout="8" validDigits="123490">
-    <Say voice="Polly.Amy-Neural">${esc(MENU_SAY)}</Say>
-  </Gather>
-  <Redirect method="POST">${esc(menuUrl)}</Redirect>
-</Response>`
-  );
+  renderMenu(res);
 });
 
 app.all("/office/router", (req, res) => {
@@ -100,18 +104,12 @@ app.all("/office/router", (req, res) => {
   console.log("Router digits:", digits, "body:", req.body, "query:", req.query);
 
   if (digits === "9" || digits === "") {
-    return xml(
-      res,
-      `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Redirect method="POST">${esc(menuUrl)}</Redirect>
-</Response>`
-    );
+    return renderMenu(res);
   }
 
   const chain = ROUTES[digits];
   if (!chain) {
-    return xml(
+    xml(
       res,
       `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -119,6 +117,7 @@ app.all("/office/router", (req, res) => {
   <Redirect method="POST">${esc(menuUrl)}</Redirect>
 </Response>`
     );
+    return;
   }
 
   renderSequentialDial(res, chain);

@@ -11,17 +11,20 @@ const BASE_URL = process.env.BASE_URL || "https://vantage-lane-ringtone.onrender
 const TELNYX_FROM = process.env.TELNYX_FROM_NUMBER || "+442046203131";
 const TELNYX_CONNECTION_ID =
   process.env.TELNYX_SIP_CONNECTION_ID || "2872033420802786570";
-const THREECX_HOST = process.env.THREECX_HOST || "1588.3cx.cloud";
 const HOLD_MUSIC_URL =
   process.env.HOLD_MUSIC_URL ||
   "https://ruskhucrvjvuuzwlboqn.supabase.co/storage/v1/object/public/ringtone/hold-music.mp3";
 
-const EXTENSIONS = {
-  "1": process.env.THREECX_EXT_BOOKINGS || "30010",
-  "2": process.env.THREECX_EXT_NEW_BOOKINGS || "30011",
-  "3": process.env.THREECX_EXT_BUSINESS || "30060",
-  "4": process.env.THREECX_EXT_DRIVER_SUPPORT || "30060",
-  "0": process.env.THREECX_EXT_RING_GROUP || "30060",
+const NUM_CATALIN = process.env.TELNYX_NUM_CATALIN || "+442046203133";
+const NUM_CRISTI = process.env.TELNYX_NUM_CRISTI || "+442046203134";
+
+// Dial registered Telnyx SIP lines (3CX apps), not sip:ext@3cx — TeXML SIP dial fails with MANDATORY_IE_MISSING.
+const ROUTES = {
+  "1": [NUM_CATALIN],
+  "2": [NUM_CRISTI],
+  "3": [NUM_CATALIN, NUM_CRISTI],
+  "4": [NUM_CATALIN, NUM_CRISTI],
+  "0": [NUM_CATALIN, NUM_CRISTI],
 };
 
 const MENU_SAY = `Thank you for calling Vantage Lane London, premium chauffeur and concierge.
@@ -87,8 +90,8 @@ app.all("/office/router", (req, res) => {
     );
   }
 
-  const extension = EXTENSIONS[digits];
-  if (!extension) {
+  const numbers = ROUTES[digits];
+  if (!numbers) {
     return xml(
       res,
       `<?xml version="1.0" encoding="UTF-8"?>
@@ -99,7 +102,9 @@ app.all("/office/router", (req, res) => {
     );
   }
 
-  const sipUri = `sip:${extension}@${THREECX_HOST}`;
+  const numberTags = numbers.map((n) => `<Number>${esc(n)}</Number>`).join("\n    ");
+
+  console.log("Dial numbers:", numbers.join(", "));
 
   xml(
     res,
@@ -107,7 +112,7 @@ app.all("/office/router", (req, res) => {
 <Response>
   <Say voice="Polly.Amy-Neural">Please hold while I connect you.</Say>
   <Dial callerId="${esc(TELNYX_FROM)}" timeout="45" ringTone="${esc(HOLD_MUSIC_URL)}" connectionId="${esc(TELNYX_CONNECTION_ID)}">
-    <Sip>${esc(sipUri)}</Sip>
+    ${numberTags}
   </Dial>
   <Say voice="Polly.Amy-Neural">${esc(UNAVAILABLE_SAY)}</Say>
 </Response>`

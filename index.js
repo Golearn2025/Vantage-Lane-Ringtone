@@ -72,24 +72,43 @@ function renderMenu(res) {
   );
 }
 
-function resolveCallerId(req) {
+function normalizeFrom(req) {
   const raw = (req.body?.From ?? req.query?.From ?? "").toString().trim();
   const normalized = raw.startsWith("+") ? raw : raw ? `+${raw.replace(/\D/g, "")}` : "";
   if (/^\+[1-9]\d{6,14}$/.test(normalized)) return normalized;
-  return TELNYX_FROM;
+  return "";
 }
 
-function renderSequentialDial(res, chain, callerId) {
+function dialPresentation(req) {
+  const inbound = normalizeFrom(req);
+  // Outbound Dial must use an owned CLI — foreign numbers cause Telnyx application errors.
+  const callerId = TELNYX_FROM;
+  const fromDisplayName = inbound ? inbound.replace(/^\+/, "") : "Vantage Lane";
+  return { callerId, fromDisplayName };
+}
+
+function dialRingbackAttr() {
+  return `audioUrl="${esc(HOLD_MUSIC_URL)}"`;
+}
+
+function renderSequentialDial(res, chain, presentation) {
   const numberTags = chain.map((n) => `    <Number>${esc(n)}</Number>`).join("\n");
 
-  console.log("Sequential dial:", chain.join(" → "), "callerId:", callerId);
+  console.log(
+    "Sequential dial:",
+    chain.join(" → "),
+    "callerId:",
+    presentation.callerId,
+    "display:",
+    presentation.fromDisplayName
+  );
 
   xml(
     res,
     `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Polly.Amy-Neural">Please hold while I connect you.</Say>
-  <Dial sequential="true" callerId="${esc(callerId)}" timeout="${DIAL_LEG_TIMEOUT}" audioUrl="${esc(HOLD_MUSIC_URL)}" connectionId="${esc(TELNYX_CONNECTION_ID)}">
+  <Dial sequential="true" callerId="${esc(presentation.callerId)}" fromDisplayName="${esc(presentation.fromDisplayName)}" timeout="${DIAL_LEG_TIMEOUT}" ${dialRingbackAttr()} connectionId="${esc(TELNYX_CONNECTION_ID)}">
 ${numberTags}
   </Dial>
   <Say voice="Polly.Amy-Neural">${esc(UNAVAILABLE_SAY)}</Say>
@@ -128,7 +147,7 @@ app.all("/office/router", (req, res) => {
     return;
   }
 
-  renderSequentialDial(res, chain, resolveCallerId(req));
+  renderSequentialDial(res, chain, dialPresentation(req));
 });
 
 app.all("/office/hold", (_req, res) => {

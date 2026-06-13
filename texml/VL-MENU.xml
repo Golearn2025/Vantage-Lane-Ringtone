@@ -1,21 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="dtmf"
-          numDigits="1"
-          timeout="8"
-          validDigits="123490"
-          action="https://vantage-lane-ringtone.onrender.com/office/router"
-          method="POST">
-    <Say voice="Polly.Amy-Neural">
-      Thank you for calling Vantage Lane London, premium chauffeur and concierge.
-      Press 1 for an existing booking.
-      Press 2 for a new reservation.
-      Press 3 for business enquiries.
-      Press 4 for driver support.
-      Press 0 to connect with our team.
-      You may also email us at contact at vantage hyphen lane dot com.
-      Press 9 to hear this menu again.
-    </Say>
-  </Gather>
+  <!-- Single menu source: Render /office/menu (index.js MENU_SAY) -->
   <Redirect method="POST">https://vantage-lane-ringtone.onrender.com/office/menu</Redirect>
 </Response>
